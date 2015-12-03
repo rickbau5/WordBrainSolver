@@ -18,7 +18,6 @@ object Solver {
   val dictionary = loadDictionary()
 
   def main(args: Array[String]): Unit = {
-
     val inputted = input()                // Get the input from the user
 
     if (inputted.isEmpty) {
@@ -47,11 +46,13 @@ object Solver {
 
     // Get the results, find the valid traversals, group them by their initial node and rebuild new trees
     val evaluatedSpecs = treedSpecs.map(fut => Await.result(fut, Duration.Inf))
-    val traversals = evaluatedSpecs.flatMap(e => e.flatMap (b => getValidBranchTraversals(b, spec.length)))
+    val traversals = evaluatedSpecs.flatMap { trees  =>
+      trees.flatMap(tree => getValidBranchTraversals(tree, spec.length))
+    }
     val grouped = traversals.groupBy(_.head.data)
     val rebuilt = grouped.map { case (root, rest) =>
       val newTree = new Tree(root)
-      rest foreach (e => buildTree(newTree, e.tail))
+      rest.foreach(traversal => buildTree(newTree, traversal.tail))
       newTree
     }
     val endTime = System.currentTimeMillis()
@@ -75,13 +76,13 @@ object Solver {
         opt = Try {
           println(prompt)
           var i = 0
-          options foreach { e =>
+          options.foreach { e =>
             i += 1
             println(s" $i: " + e.data._1._1)
           }
           val choice = StdIn.readLine("> ").toInt
           val strMatch = getNodeWord(options(choice - 1))
-          options.filter(e => getNodeWord(e) == strMatch)
+          options.filter(node => getNodeWord(node) == strMatch)
         }.toOption
       }
       opt.get
@@ -167,12 +168,12 @@ object Solver {
     */
   def expandFromNode(node: Node[WordBoardPair], wordSpecs: Seq[(Int, Int)]): Node[WordBoardPair] = wordSpecs match {
     case head :: Nil =>
-      expandSpec(node.data._2, head).foreach { e => node.addChild(e) }
+      expandSpec(node.data._2, head).foreach(e => node.addChild(e))
       node
     case head :: tail =>
-      expandSpec(node.data._2, head).foreach { e => node.addChild(e) }
+      expandSpec(node.data._2, head).foreach(e => node.addChild(e))
       // For the new children to the node, continue building the tree.
-      node.children foreach (e => expandFromNode(e, tail))
+      node.children.foreach(e => expandFromNode(e, tail))
       node
   }
 
@@ -257,7 +258,9 @@ object Solver {
   def settleBoard(originalBoard: Board, wordSeq: WordSeq): Board = {
     // Take the original board and remove this word sequence from it
     var newBoard = originalBoard
-    wordSeq._2.foreach(position => newBoard = newBoard.updated(position._1, newBoard(position._1).updated(position._2, '-')))
+    wordSeq._2.foreach { position =>
+      newBoard = newBoard.updated(position._1, newBoard(position._1).updated(position._2, '-'))
+    }
     val limit = newBoard.indices.last
 
     // For each column, move all letters down if there is a '-' in it
@@ -265,7 +268,8 @@ object Solver {
       for (height <- 0 to limit) {
         if (letterAtPosition(newBoard, (column._1 - height, column._2)).isEmpty) {
           val abovePosition = (column._1 - height - 1, column._2)
-          newBoard = updatePosition(letterAtPosition(newBoard, abovePosition).getOrElse('-'), newBoard, (column._1 - height, column._2))
+          newBoard = updatePosition(letterAtPosition(newBoard, abovePosition).getOrElse('-'),
+            newBoard, (column._1 - height, column._2))
           newBoard = updatePosition('-', newBoard, abovePosition)
         }
       }
@@ -306,11 +310,10 @@ object Solver {
     * @return list of all possible words of the correct length starting from every position
     *         on the board. These are not necessarily dictionary words.
     */
-  def permutationsInBoard(board: Board, wordLength: Int, range: Range): Seq[WordSeq] = {
+  def permutationsInBoard(board: Board, wordLength: Int, range: Range): Seq[WordSeq] =
     range.flatMap(x => range.flatMap { y =>
       startSearch(board, (y, x), wordLength)
     })
-  }
 
   /**
     *  The driver function for evaluating the possible words on a board starting from
@@ -331,16 +334,16 @@ object Solver {
       case l =>
         // Grab all adjacent characters, and build words recursively using each of them
         val chars = adjacentCharacters(board, innerPos)
-        val words = chars.filterNot(c => checked.contains(c._2)).flatMap { case (char, pos) =>
-          findWords(word + char, board, pos, checked :+ pos, l - 1)
-        }
+        val words = chars.filterNot(c => checked.contains(c._2))
+          .flatMap { case (char, pos) =>
+            findWords(word + char, board, pos, checked :+ pos, l - 1)
+          }
         words
     }
 
     letterAtPosition(board, position) match {
       case Some(char) =>
-        val words = findWords(char.toString, board, position, Seq(position), length - 1)
-        words
+        findWords(char.toString, board, position, Seq(position), length - 1)
       case None =>
         Seq.empty[WordSeq]
     }
@@ -356,13 +359,14 @@ object Solver {
     */
   def adjacentCharacters(board: Board, position: Position): List[(Char, Position)] = {
     val range = List(-1, 0, 1)
-    range.flatMap(y => range.map(x => (y + position._1, x + position._2)))
-      .flatMap { p =>
-        letterAtPosition(board, p) match {
-          case Some(c) => Option(c -> p)
-          case _ => None
-        }
+    range.flatMap { y =>
+      range.map(x => (y + position._1, x + position._2))
+    }.flatMap { p =>
+      letterAtPosition(board, p) match {
+        case Some(c) => Option(c -> p)
+        case _ => None
       }
+    }
   }
 
   /**
@@ -429,6 +433,15 @@ object PrefabBoards {
     )), Seq((0,4), (1,5), (2,3), (3,4))
   )
 
+  val profitBulletWell = (
+    toBoard(Seq(
+      "wtep",
+      "bltr",
+      "ulio",
+      "ellf"
+    )), Seq((0,6), (1,4), (2,6))
+  )
+
   val tableRecordNorth = (
     toBoard(Seq(
       "enrd",
@@ -460,7 +473,6 @@ object PrefabBoards {
 }
 
 case class Node[A](data: A, var children: Seq[Node[A]]) {
-
   // Helper function to add a child to the node
   def addChild(data: A, childNodes: Seq[Node[A]] = Seq.empty): Node[A] = {
     val newNode = Node(data, childNodes)
