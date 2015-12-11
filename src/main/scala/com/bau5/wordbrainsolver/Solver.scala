@@ -25,9 +25,10 @@ object Solver {
   def main(args: Array[String]): Unit = {
     val reader = new ImageReader
 
-    val fileName = StdIn.readLine("Enter the file name \n" + conf.getString("solver.input-path").split("/").last + "/")
+    val prompt = conf.getString("solver.input-path")
+    val fileName = StdIn.readLine("Enter the file name \n" + prompt)
 
-    val readerOutput = Option(reader.processScreenshot(fileName, conf))
+    val readerOutput = Option(reader.processScreenshot(prompt + fileName, conf))
     if (readerOutput.isEmpty) {
       sys.error("No input was received from ImageReader...")
       System.exit(0)

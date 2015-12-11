@@ -247,7 +247,7 @@ public class ImageReader {
     }
 
     public BufferedImage getCroppedBoard(Config conf, String fileName) throws IOException {
-        BufferedImage full = ImageIO.read(new File(conf.getString(prefixed("test-images-dir")) + fileName));
+        BufferedImage full = ImageIO.read(new File(fileName));
         double headerEnd = full.getHeight() * conf.getDouble(prefixed("header-height"));
         double footerStart = full.getHeight() - (full.getHeight() * conf.getDouble(prefixed("footer-height")));
 
