@@ -1,5 +1,7 @@
 package com.bau5.wordbrainsolver
 
+import com.typesafe.config.ConfigFactory
+
 import scala.collection.immutable.HashMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -17,14 +19,15 @@ object Solver {
   type WordBoardPair = (WordSeq, Board)
   type BranchTraversal[A] = Seq[Node[A]]
 
+  val conf = ConfigFactory.load()
   val dictionary = loadDictionary()
 
   def main(args: Array[String]): Unit = {
     val reader = new ImageReader
 
-    val fileName = StdIn.readLine("Enter relative file name \nimages/")
+    val fileName = StdIn.readLine("Enter the file name \n" + conf.getString("solver.input-path").split("/").last + "/")
 
-    val readerOutput = Option(reader.processScreenshot(fileName))
+    val readerOutput = Option(reader.processScreenshot(fileName, conf))
     if (readerOutput.isEmpty) {
       sys.error("No input was received from ImageReader...")
       System.exit(0)
@@ -401,13 +404,12 @@ object Solver {
   }
 
   /**
-    *  Loads the dictionary of words to use at the given path. For this implementation
-    * the default path of the dictionary available on Unix machines is used
+    *  Loads the dictionary of words to use at the path in the config.
     *
-    * @param path The path to the dictionary (defaults to /usr/share/dict/words)
     * @return the dictionary represented as a HashMap
     */
-  def loadDictionary(path: String = "/usr/share/dict/words"): HashMap[Int, String] = {
+  def loadDictionary(): HashMap[Int, String] = {
+    val path = conf.getString("solver.dictionary-path")
     var map = new HashMap[Int, String]
     // For each line in the dictionary, add it to the HashMap with the string's
     //hash used as the key

@@ -21,7 +21,7 @@ public class ImageReader {
     final TessBaseAPI api;
 
     public static void main(String[] args) {
-        BoardProperties props = new ImageReader().processScreenshot("4x4.png");
+        BoardProperties props = new ImageReader().processScreenshot("4x4.png", ConfigFactory.load());
         System.out.println(props.getOutput());
     }
 
@@ -34,8 +34,7 @@ public class ImageReader {
 
     }
 
-    public BoardProperties processScreenshot(String fileName) {
-        Config conf = ConfigFactory.load();
+    public BoardProperties processScreenshot(String fileName, Config conf) {
         String ret = null;
         BoardProperties boardProperties = null;
 
