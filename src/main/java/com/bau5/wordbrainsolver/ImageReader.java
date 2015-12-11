@@ -231,7 +231,6 @@ public class ImageReader {
                     }
                 }
             }
-            System.out.println("Boxes in row: " + boxCounter);
             boxCounter = 0;
             spanCounter = 0;
         }

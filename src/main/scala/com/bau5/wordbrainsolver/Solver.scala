@@ -148,9 +148,9 @@ object Solver {
     * @param maxLength the length of the branches we want to find
     * @return
     */
-  def getValidBranchTraversals(tree: Tree[WordBoardPair], maxLength: Int) = {
-    def evaluateNodes(currentNode: Node[WordBoardPair], sofar: Seq[Node[WordBoardPair]]):
-        Seq[BranchTraversal[WordBoardPair]] = currentNode.children match {
+  def getValidBranchTraversals[A](tree: Tree[A], maxLength: Int) = {
+    def evaluateNodes(currentNode: Node[A], sofar: Seq[Node[A]]):
+        Seq[BranchTraversal[A]] = currentNode.children match {
       case Nil =>
         // We've found a leaf, return this traversal if the length of it is equal
         //to the length that we're searching for
@@ -522,4 +522,3 @@ class Tree[A] (in: A) {
 
   override def toString: String = s"${root.toString} -> " + root.children.mkString(",")
 }
-
