@@ -1,8 +1,8 @@
-import java.nio.file.{Paths, Files}
+package com.bau5.wordbrainsolver
 
-import com.bau5.wordbrainsolver.{Solver, Tree}
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Matchers, FlatSpec}
+import java.nio.file.{Files, Paths}
+import org.scalatest.{FlatSpec, Matchers}
 
 
 /**
@@ -19,8 +19,23 @@ class SolverSpec extends FlatSpec with Matchers {
     fileExists(conf.getString("solver.input-path")) should be (true)
   }
 
+  it should "update the board correctly" in {
+    (Solver.updatePosition('z', dummyBoard, (1, 2)).map(_.mkString(""))
+      should contain allOf ("abc", "dez", "hij"))
+  }
+
+  it should "settle the board correctly" in {
+    val wordseq = (
+      "hec",
+      Seq((2, 0), (1, 1), (0, 2))
+    )
+    (Solver.settleBoard(dummyBoard, wordseq).map(_.mkString(""))
+      should contain allOf ("---", "abf", "dij"))
+  }
+
+
   "The tree operation" should "find branch traversals of correct length" in {
-    val tree = getTree()
+    val tree = getTree
     val traversals = Solver.getValidBranchTraversals(tree, 3)
     traversals forall(_.length == 3) should be (true)
   }
@@ -29,7 +44,7 @@ class SolverSpec extends FlatSpec with Matchers {
     Files.exists(Paths.get(path))
   }
 
-  def getTree(): Tree[String] = {
+  def getTree: Tree[String] = {
     val tr = new Tree[String]("root")
     tr.root.addChild("left")
     tr.root.addChild("too short")
@@ -39,4 +54,10 @@ class SolverSpec extends FlatSpec with Matchers {
     tr.root.children.head.children(2).addChild("branch too long")
     tr
   }
+
+  def dummyBoard: Solver.Board = Seq(
+    "abc",
+    "def",
+    "hij"
+  ).map(_.toCharArray.toSeq)
 }

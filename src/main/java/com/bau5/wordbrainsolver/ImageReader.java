@@ -21,8 +21,10 @@ public class ImageReader {
     final TessBaseAPI api;
 
     public static void main(String[] args) {
-        BoardProperties props = new ImageReader().processScreenshot("4x4.png", ConfigFactory.load());
+        ImageReader reader = new ImageReader();
+        BoardProperties props = reader.processScreenshot(ConfigFactory.load(), "4x4.png");
         System.out.println(props.getOutput());
+        reader.post();
     }
 
     public ImageReader() {
@@ -34,7 +36,7 @@ public class ImageReader {
 
     }
 
-    public BoardProperties processScreenshot(String fileName, Config conf) {
+    public BoardProperties processScreenshot(Config conf, String fileName) {
         String ret = null;
         BoardProperties boardProperties = null;
 
@@ -76,7 +78,7 @@ public class ImageReader {
      * @param conf
      * @return an image that is all the tiles stitched together, without the space in between.
      */
-    public BoardProperties getBoardProperties(Config conf, String fileName) throws IOException {
+    private BoardProperties getBoardProperties(Config conf, String fileName) throws IOException {
         BufferedImage image = getCroppedBoard(conf, fileName);
         String tileColor = conf.getString(prefixed("colors.tile"));
 
@@ -205,12 +207,12 @@ public class ImageReader {
 
         int totalBoxSize = insideBox + 2 * borderSize;
 
-        System.out.println("Border: " + borderSize);
+        /*System.out.println("Border: " + borderSize);
         System.out.println("Inside box: " + insideBox);
         System.out.println("Total box size: " + totalBoxSize);
-        System.out.println("Between boxes: " + betweenBoxes);
+        System.out.println("Between boxes: " + betweenBoxes);*/
 
-        ArrayList<Integer> boxes = new ArrayList<Integer>();
+        ArrayList<Integer> boxes = new ArrayList<>();
 
         int boxCounter = 0;
         int spanCounter = 0;
@@ -240,17 +242,21 @@ public class ImageReader {
             temp.saveImages(conf);
             throw new IllegalStateException("No boxes found!");
         }
-        System.out.println("Found these boxes: " + boxes);
+//        System.out.println("Found these boxes: " + boxes);
 
         return new BoardProperties(lettersOnly, image, tileSize, tilesInRow, boxes);
     }
 
     public BufferedImage getCroppedBoard(Config conf, String fileName) throws IOException {
-        BufferedImage full = ImageIO.read(new File(fileName));
+        BufferedImage full = loadImageAtPath(fileName);
         double headerEnd = full.getHeight() * conf.getDouble(prefixed("header-height"));
         double footerStart = full.getHeight() - (full.getHeight() * conf.getDouble(prefixed("footer-height")));
 
         return full.getSubimage(0, (int)headerEnd, full.getWidth(), (int)(footerStart - headerEnd));
+    }
+
+    public BufferedImage loadImageAtPath(String path) throws IOException {
+        return ImageIO.read(new File(path));
     }
 
     public String readImage(BufferedImage inputImage) {
@@ -270,7 +276,7 @@ public class ImageReader {
         String string = output.getString();
 
         // Destroy used object and release memory
-        api.End();
+
         output.deallocate();
         pixDestroy(image);
         return string;
@@ -279,5 +285,9 @@ public class ImageReader {
     public static String prefixed(String str) {
         String prefix = "image-reader";
         return String.format("%s.%s", prefix, str);
+    }
+
+    public void post() {
+        api.End();
     }
 }

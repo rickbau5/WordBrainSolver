@@ -28,9 +28,10 @@ object Solver {
     val prompt = conf.getString("solver.input-path")
     val fileName = StdIn.readLine("Enter the file name \n" + prompt)
 
-    val readerOutput = Option(reader.processScreenshot(prompt + fileName, conf))
+    val readerOutput = Option(reader.processScreenshot(conf, prompt + fileName))
     if (readerOutput.isEmpty) {
       sys.error("No input was received from ImageReader...")
+      reader.post()
       System.exit(0)
     }
     val boardProps = readerOutput.get
@@ -40,6 +41,7 @@ object Solver {
 
     if (inputted.isEmpty) {
       println("Failed reading input.")    // exit if there is an error
+      reader.post()
       System.exit(0)
     }
 
@@ -81,6 +83,7 @@ object Solver {
 
     // Interact with the user to have them enter the correct answer.
     queryUser(rebuilt.toSeq)
+    reader.post();
   }
 
   def getInputFromReader(props: BoardProperties): (Board, Seq[(Int, Int)]) = {
