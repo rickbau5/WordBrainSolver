@@ -1,9 +1,11 @@
+package com.bau5.wordbrainsolver
+
 import scala.collection.immutable.HashMap
-import scala.concurrent.duration.Duration
-import scala.io.{StdIn, Source}
-import scala.util.Try
-import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scala.io.{Source, StdIn}
+import scala.util.Try
 
 /**
   * Created by Rick on 11/23/15.
@@ -18,7 +20,19 @@ object Solver {
   val dictionary = loadDictionary()
 
   def main(args: Array[String]): Unit = {
-    val inputted = input()                // Get the input from the user
+    val reader = new ImageReader
+
+    val fileName = StdIn.readLine("Enter relative file name \nimages/")
+
+    val readerOutput = Option(reader.processScreenshot(fileName))
+    if (readerOutput.isEmpty) {
+      sys.error("No input was received from ImageReader...")
+      System.exit(0)
+    }
+    val boardProps = readerOutput.get
+
+//    val inputted = input()                // Get the input from the user
+    val inputted = Option(getInputFromReader(boardProps))
 
     if (inputted.isEmpty) {
       println("Failed reading input.")    // exit if there is an error
@@ -28,7 +42,9 @@ object Solver {
     val board = inputted.get._1
     val spec = inputted.get._2
 
+    println("Successfully read the board.")
     printBoard(board)                     // display the board.
+    println("Words to find: " + spec.map(_._2).mkString(", "))
 
     val startTime = System.currentTimeMillis()
 
@@ -61,6 +77,21 @@ object Solver {
 
     // Interact with the user to have them enter the correct answer.
     queryUser(rebuilt.toSeq)
+  }
+
+  def getInputFromReader(props: BoardProperties): (Board, Seq[(Int, Int)]) = {
+    val board = props.getOutput.replace(" ", "")
+      .split("\n")
+      .map(_.toCharArray.toSeq)
+      .toSeq
+    var i = 0
+    val newSeq = Seq.fill(props.boxes.length)(0).map { a =>
+      val n = props.boxes(i)
+      val idx = i
+      i += 1
+      (idx, n.toInt)
+    }
+    (board, newSeq)
   }
 
   /**
@@ -386,8 +417,10 @@ object Solver {
         map += w.hashCode -> w
       }
     }
-    // For whatever reason, box isn't in this dictionary...
+    // Add some words that are missing from the dictionary... (maybe I should find a different one)
     map += "box".hashCode -> "box"
+    map += "tv".hashCode -> "tv"
+    map += "barbell".hashCode -> "barbell"
     map
   }
 

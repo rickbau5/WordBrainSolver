@@ -5,6 +5,10 @@ out/
 *.class
 *.log
 
+.DS_STORE
+*.swp
+META-INF/
+
 # sbt specific
 .cache
 .history
