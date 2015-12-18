@@ -18,16 +18,28 @@ public class BoardProperties {
     public final int tilesInRow;
     public final Integer[] boxes;
 
+    private String tesseractOutput = "";
     private String output = null;
 
     boolean directoryInitialized = false;
 
-    BoardProperties(BufferedImage lettersImage, BufferedImage croppedImage, int dim, int numInRow, ArrayList<Integer> boxes) {
+    public BoardProperties(BufferedImage lettersImage, BufferedImage croppedImage, int dim, int numInRow,
+                           ArrayList<Integer> boxes) {
         this.board = lettersImage;
         this.croppedImage = croppedImage;
         this.tileDimension = dim;
         this.tilesInRow = numInRow;
         this.boxes = boxes.toArray(new Integer[boxes.size()]);
+    }
+
+    public void setTesseractOutput(String str) {
+        if (tesseractOutput.equals("")) {
+            tesseractOutput = str;
+        }
+    }
+
+    public String getTesseractOutput() {
+        return tesseractOutput;
     }
 
     public void setOutput(String str) {
@@ -39,6 +51,7 @@ public class BoardProperties {
     public String getOutput() {
         return output;
     }
+
     public int getTotalTiles() {
         return tilesInRow * tilesInRow;
     }
@@ -54,15 +67,18 @@ public class BoardProperties {
     }
 
     public void saveProperties(Config conf) throws IOException {
-        String path = getOutputPath(conf);
         Properties props = new Properties();
         props.setProperty("tile-dimension", "" + tileDimension);
         props.setProperty("tiles-in-row", "" + tilesInRow);
-        String output = "";
+        props.setProperty("tesseract-output", tesseractOutput != null ? tesseractOutput : "null");
+        props.setProperty("processed-output", output != null ? output : "null");
+
+        String boxesString = "";
         for (Integer b : boxes) {
-            output += b + " ";
+            boxesString += b + " ";
         }
-        props.setProperty("boxes", output);
+        props.setProperty("boxes", boxesString);
+
         props.store(new FileOutputStream(getOutputPath(conf) + "/properties.txt"), null);
     }
 

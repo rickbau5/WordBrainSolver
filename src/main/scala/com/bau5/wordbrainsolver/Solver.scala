@@ -1,13 +1,13 @@
 package com.bau5.wordbrainsolver
 
 import com.typesafe.config.ConfigFactory
-
 import scala.collection.immutable.HashMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.io.{Source, StdIn}
 import scala.util.Try
+
 
 /**
   * Created by Rick on 11/23/15.
@@ -22,8 +22,9 @@ object Solver {
   val conf = ConfigFactory.load()
   val dictionary = loadDictionary()
 
+  // scalastyle:off
   def main(args: Array[String]): Unit = {
-    val reader = new ImageReader
+    val reader = new ImageReader()
 
     val prompt = conf.getString("solver.input-path")
     val fileName = StdIn.readLine("Enter the file name \n" + prompt)
@@ -36,7 +37,7 @@ object Solver {
     }
     val boardProps = readerOutput.get
 
-//    val inputted = input()                // Get the input from the user
+    //val inputted = input()                // Get the input from the user
     val inputted = Option(getInputFromReader(boardProps))
 
     if (inputted.isEmpty) {
@@ -82,9 +83,15 @@ object Solver {
     println(s"Finished in ${endTime - startTime}ms")
 
     // Interact with the user to have them enter the correct answer.
-    queryUser(rebuilt.toSeq)
-    reader.post();
+    rebuilt match {
+      case Nil =>
+        println("Couldn't find any solutions to the board :(")
+      case trees =>
+        queryUser(trees.toSeq)
+    }
+    reader.post()
   }
+  // scalastyle:on
 
   def getInputFromReader(props: BoardProperties): (Board, Seq[(Int, Int)]) = {
     val board = props.getOutput.replace(" ", "")
@@ -126,15 +133,17 @@ object Solver {
       opt.get
     }
 
-    def evaluateLevel(choices: Seq[Node[WordBoardPair]], sofar: Seq[WordBoardPair]): Seq[WordBoardPair] = choices match {
+    def evaluateLevel(choices: Seq[Node[WordBoardPair]], seq: Seq[WordBoardPair]): Seq[WordBoardPair] = choices match {
       case Nil =>
-        sofar
+        seq
       case head :: Nil =>
-        println("Only one choice - selected " + getNodeWord(head))
-        evaluateLevel(head.children, sofar ++ choices.map(_.data))
+        println("Only one choice: ")
+        println(" 1: " + getNodeWord(head))
+
+        evaluateLevel(head.children, seq ++ choices.map(_.data))
       case _ =>
-        val choice = getChoice( { if (sofar.isEmpty) { "Choose frist word"} else { "Choose next word: " } }, choices)
-        evaluateLevel(choice.flatMap(_.children).distinct, sofar ++ Seq(choice.head.data))
+        val choice = getChoice( { if (seq.isEmpty) { "Choose frist word"} else { "Choose next word: " } }, choices)
+        evaluateLevel(choice.flatMap(_.children).distinct, seq ++ Seq(choice.head.data))
     }
 
     val seq = evaluateLevel(validTrees.map(_.root), Seq.empty[WordBoardPair])
@@ -151,7 +160,7 @@ object Solver {
     * @param maxLength the length of the branches we want to find
     * @return
     */
-  def getValidBranchTraversals[A](tree: Tree[A], maxLength: Int) = {
+  def getValidBranchTraversals[A](tree: Tree[A], maxLength: Int): Seq[BranchTraversal[A]] = {
     def evaluateNodes(currentNode: Node[A], sofar: Seq[Node[A]]):
         Seq[BranchTraversal[A]] = currentNode.children match {
       case Nil =>
@@ -176,7 +185,8 @@ object Solver {
     * @return the tree with the new traversal within it
     */
   def buildTree(tree: Tree[WordBoardPair], traversal: BranchTraversal[WordBoardPair]): Tree[WordBoardPair] = {
-    def evaluateNodes(newTreeNode: Node[WordBoardPair], trav: BranchTraversal[WordBoardPair]): Tree[WordBoardPair] = trav match {
+    def evaluateNodes(newTreeNode: Node[WordBoardPair], trav: BranchTraversal[WordBoardPair]):
+        Tree[WordBoardPair] = trav match {
       case head :: Nil =>
         // We're at the end of the traversal. Add this leaf to the tree if it doesn't already exist.
         if (newTreeNode.children.forall(_.data != head.data)) {
@@ -241,8 +251,7 @@ object Solver {
       }
 
       // See if the word is in the dictionary
-      val ret = dictionary.contains(use.hashCode) || dictionary.contains(word.hashCode)
-      if (ret) {
+      if (dictionary.contains(use.hashCode) || dictionary.contains(word.hashCode)) {
         // Double check that it is the correct word, was experience hash collisions.
         val w = dictionary.getOrElse(use.hashCode, dictionary.get(word.hashCode).get)
         w == word || w == use
@@ -424,9 +433,8 @@ object Solver {
       }
     }
     // Add some words that are missing from the dictionary... (maybe I should find a different one)
-    map += "box".hashCode -> "box"
-    map += "tv".hashCode -> "tv"
     map += "barbell".hashCode -> "barbell"
+    map += "keyring".hashCode -> "keyring"
     map
   }
 
@@ -448,7 +456,9 @@ object Solver {
 
   def getNodeWord(node: Node[WordBoardPair]): String = node.data._1._1
 
+  // scalastyle:off
   def printBoard(board: Board) = board.foreach(r => println(r.mkString(" ")))
+  // scalastyle:on
 }
 
 /**

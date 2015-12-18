@@ -1,5 +1,4 @@
 classpathTypes += "maven-plugin"
-resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
 libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.0",

@@ -1,14 +1,14 @@
 package com.bau5.wordbrainsolver
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 
 /**
   * Created by Rick on 12/10/15.
   */
-class ImageReaderSpec extends WordSpec with Matchers {
-  val reader = new ImageReader()
+class ImageReaderSpec extends WordSpec with Matchers with BeforeAndAfterAll {
+  var reader: ImageReader = _
   val config = ConfigFactory.load()
 
   "The image reader" should {
@@ -50,6 +50,17 @@ class ImageReaderSpec extends WordSpec with Matchers {
       props4.get.boxes should have length 3
       props4.get.boxes should contain allOf (3, 6, 7)
     }
+  }
+
+
+  override protected def beforeAll(): Unit = {
+    reader = new ImageReader
+    super.beforeAll()
+  }
+
+  override protected def afterAll(): Unit = {
+    reader.post()
+    super.afterAll()
   }
 
   def getImagePath(str: String): String = {

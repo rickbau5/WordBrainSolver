@@ -1,14 +1,16 @@
-import com.bau5.wordbrainsolver.{Tree, Node}
 
+import com.bau5.wordbrainsolver.{Tree, Node}
 import scala.io.StdIn
+
 
 /**
   * Created by Rick on 12/2/15.
   */
+// scalastyle:off
 object TreeTestSpace {
   type BranchTraversal[A] = Seq[Node[A]]
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     val tree = gimmeDatTree()
     val traversals = getValidBranchTraversals(tree, 3)
     val grouped = traversals.groupBy(_.head.data)
@@ -66,7 +68,7 @@ object TreeTestSpace {
     tree
   }
 
-  def traverseTree(tree: Tree[String]) = {
+  def traverseTree(tree: Tree[String]): Unit = {
     val traversal = traverseNodes(tree.root, Seq.empty)
     println(traversal.map(_.data).mkString("->"))
   }
@@ -74,12 +76,15 @@ object TreeTestSpace {
   def traverseNodes(node: Node[String], seq: Seq[Node[String]]): Seq[Node[String]] = node.children match {
     case Nil =>
       println("Reached base of tree " + node.data)
+
       seq ++ Seq(node)
     case head :: Nil =>
       println("Only one child, chose: " + head.data)
+
       traverseNodes(head, seq ++ Seq(node))
     case children =>
       println("Choose one: ")
+
       children foreach (e => println(": " + e.data))
       val choice = StdIn.readInt()
       traverseNodes(children(choice), seq ++ Seq(node))
@@ -96,7 +101,7 @@ object TreeTestSpace {
     tr
   }
 
-  def getValidBranchTraversals(tree: Tree[String], maxLength: Int) = {
+  def getValidBranchTraversals(tree: Tree[String], maxLength: Int): Seq[BranchTraversal[String]] = {
     def evaluateNodes(currentNode: Node[String], sofar: Seq[Node[String]], length: Int):
     Seq[BranchTraversal[String]] = currentNode.children match {
       case Nil =>
@@ -111,6 +116,6 @@ object TreeTestSpace {
     evaluateNodes(tree.root, Seq(tree.root), maxLength)
   }
 
-  def printTraversal(traversal: BranchTraversal[String]) = println(traversal.map(_.data).mkString("->"))
+  def printTraversal(traversal: BranchTraversal[String]): Unit = println(traversal.map(_.data).mkString("->"))
 
 }

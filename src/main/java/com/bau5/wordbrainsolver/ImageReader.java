@@ -2,13 +2,11 @@ package com.bau5.wordbrainsolver;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import javax.imageio.ImageIO;
-
 import org.bytedeco.javacpp.BytePointer;
 import static org.bytedeco.javacpp.lept.*;
 import org.bytedeco.javacpp.tesseract.*;
@@ -27,13 +25,16 @@ public class ImageReader {
         reader.post();
     }
 
-    public ImageReader() {
+    public ImageReader(String tessdataPath) {
         this.api = new TessBaseAPI();
-        if (this.api.Init(".", "ENG") != 0) {
+        if (this.api.Init(tessdataPath, "ENG") != 0) {
             System.err.println("Failed initializing Tesseract");
             System.exit(1);
         }
+    }
 
+    public ImageReader() {
+        this(".");
     }
 
     public BoardProperties processScreenshot(Config conf, String fileName) {
@@ -42,10 +43,10 @@ public class ImageReader {
 
         try {
             boardProperties = getBoardProperties(conf, fileName);
-            boardProperties.saveImages(conf);
-            boardProperties.saveProperties(conf);
 
             String readerOutput = readImage(boardProperties.board);
+            boardProperties.setTesseractOutput(readerOutput);
+
             String processed = readerOutput.toLowerCase().replace(" ", "").replace("\n", "");
 
             if (processed.length() == boardProperties.getTotalTiles()) {
@@ -62,15 +63,21 @@ public class ImageReader {
             isex.printStackTrace();
         }
 
-        if (ret != null) {
-            // Some common Tesseract derps in our case
-            String save = ret.replace("|", "i");
+        if (boardProperties != null) {
+            if (ret != null ) {
+                String save = ret.replace("|", "i");
+                boardProperties.setOutput(save);
+            }
+            try {
+                boardProperties.saveImages(conf);
+                boardProperties.saveProperties(conf);
+            } catch (IOException ex){
+                System.err.println("Failed saving board properties");
+                ex.printStackTrace();
+            }
 
-            boardProperties.setOutput(save);
-            return boardProperties;
-        } else {
-            return null;
         }
+        return ret != null ? boardProperties : null;
     }
 
     /**
@@ -123,17 +130,7 @@ public class ImageReader {
         int tileSize = tileXEnd - tileXStart;
         int paddingPerTile = (image.getWidth() - (tileSize * tilesInRow)) / tilesInRow;
 
-
-        BufferedImage lettersOnly = new BufferedImage(tilesInRow * tileSize - paddingPerTile * tilesInRow,
-                                                tilesInRow * tileSize - paddingPerTile * tilesInRow, image.getType());
-        Graphics graphics = lettersOnly.getGraphics();
-        for (int row = 0; row < tilesInRow; row++) {
-            for (int column = 0; column < tilesInRow; column++) {
-                BufferedImage subImage = image.getSubimage(column * tileSize + (paddingPerTile * (1 + column)),
-                        tileYStart + row * (tileSize + paddingPerTile), tileSize - paddingPerTile, tileSize - paddingPerTile);
-                graphics.drawImage(subImage, column * tileSize - (paddingPerTile * column), row * tileSize - (paddingPerTile * row), null);
-            }
-        }
+        BufferedImage lettersOnly = getImageOfLetters(image, tilesInRow, tileSize, paddingPerTile, tileYStart);
 
         // Find the word specifications
 
@@ -245,6 +242,20 @@ public class ImageReader {
 //        System.out.println("Found these boxes: " + boxes);
 
         return new BoardProperties(lettersOnly, image, tileSize, tilesInRow, boxes);
+    }
+
+    public BufferedImage getImageOfLetters(BufferedImage baseImage, int tilesInRow, int tileSize, int paddingPerTile, int tileYStart) {
+        BufferedImage lettersOnly = new BufferedImage(tilesInRow * tileSize - paddingPerTile * tilesInRow,
+                tilesInRow * tileSize - paddingPerTile * tilesInRow, baseImage.getType());
+        Graphics graphics = lettersOnly.getGraphics();
+        for (int row = 0; row < tilesInRow; row++) {
+            for (int column = 0; column < tilesInRow; column++) {
+                BufferedImage subImage = baseImage.getSubimage(column * tileSize + (paddingPerTile * (1 + column)),
+                        tileYStart + row * (tileSize + paddingPerTile), tileSize - paddingPerTile, tileSize - paddingPerTile);
+                graphics.drawImage(subImage, column * tileSize - (paddingPerTile * column), row * tileSize - (paddingPerTile * row), null);
+            }
+        }
+        return lettersOnly;
     }
 
     public BufferedImage getCroppedBoard(Config conf, String fileName) throws IOException {
